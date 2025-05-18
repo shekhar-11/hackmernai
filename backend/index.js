@@ -8,12 +8,12 @@ const app = express();
   // ;})
   app.use(express.json());
 connectDb();
-
+import generate from "./routes/user.routes.js";
 import authrouter from "./routes/authenticate.route.js";
 import cookieParser from "cookie-parser";
 app.use(cookieParser())
-app.use("/auth",authrouter);
-
+app.use("/api",authrouter);
+app.use("/api",generate);
 app.listen(3000,(req,res)=>{
   console.log("Server is running on port 3000");  
 })

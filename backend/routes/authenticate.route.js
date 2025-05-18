@@ -3,8 +3,8 @@ import { signUp,login, update, logout } from "../controllers/authenticate.contro
 import verifyUser from "../verifyUser.js";
 const authrouter = express.Router();
 
-authrouter.post("/signUp",signUp);
-authrouter.post("/login",login);
-authrouter.post("/update",verifyUser,update)
-authrouter.get("/logout",verifyUser,logout);
+authrouter.post("/auth/signUp",signUp);
+authrouter.post("/auth/login",login);
+authrouter.post("/auth/update",verifyUser,update)
+authrouter.get("/auth/logout",verifyUser,logout);
 export default authrouter;

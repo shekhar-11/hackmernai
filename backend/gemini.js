@@ -7,15 +7,13 @@ const bannedKeywords = [
   "drugs", "murder", "assault", "gore", "blood", "hate", "racism", "suicide"
 ];
 
-// Check for inappropriate content
 function isInappropriate(text) {
   const lower = text.toLowerCase();
   return bannedKeywords.some(bad => lower.includes(bad));
 }
 
-// Use Gemini to clean and correct topic intelligently
 async function correctTopic(rawInput) {
- const correctionPrompt = `
+  const correctionPrompt = `
 You are a helpful AI assistant for a tech education platform.
 
 Your job is to interpret and correct a user's topic input.
@@ -29,12 +27,15 @@ If the input has typos, slang, or is unclear, guess the most likely **technical*
 Only return the cleaned and corrected topic name as a plain string — no explanation or extra characters.
 `;
 
-
   try {
     const correctionResponse = await ai.models.generateContent({
       model: "gemini-2.0-flash",
       contents: correctionPrompt
     });
+
+    if (!correctionResponse || !correctionResponse.text) {
+      throw new Error("No response text from Gemini API");
+    }
 
     const corrected = correctionResponse.text.trim().replace(/^"+|"+$/g, '');
     if (isInappropriate(corrected)) {
@@ -48,8 +49,7 @@ Only return the cleaned and corrected topic name as a plain string — no explan
   }
 }
 
-// Generate course and quiz
-async function generateCourseParts(userInputTopic) {
+async function generateCourseParts({userInputTopic}) {
   let correctedTopic;
 
   try {
@@ -83,12 +83,16 @@ Only return pure JSON, no extra text or markdown.
       contents: coursePrompt
     });
 
-    const cleaned = response.text
-  .replace(/```json/g, '')
-  .replace(/```/g, '')
-  .trim();
+    if (!response || !response.text) {
+      throw new Error("No response text from Gemini API");
+    }
 
-const result = JSON.parse(cleaned);
+    const cleaned = response.text
+      .replace(/```json/g, '')
+      .replace(/```/g, '')
+      .trim();
+
+    const result = JSON.parse(cleaned);
 
     console.log(JSON.stringify(result, null, 2));
     return result;
@@ -97,6 +101,4 @@ const result = JSON.parse(cleaned);
   }
 }
 
-// Example (simulated user input, replace with dynamic input in real app)
-const userInput = "web dev"; // messy input
-generateCourseParts(userInput);
+export { generateCourseParts };

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Logout from './Logout';
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -9,21 +10,195 @@ const Dashboard = () => {
   const [username, setUsername] = useState('John');
   const [showProfile, setShowProfile] = useState(false);
 
-  const handleLogout = async () => {
+  const [generatedCourse, setGeneratedCourse] = useState(null);
+
+  const handleCourseSubmit = async (e) => {
+    e.preventDefault();
+    if (!courseTopic.trim()) return;
+
+    setIsGenerating(true);
+    setGeneratedCourse(null);
+
+    const generateMERNCourse = () => ({
+      id: Date.now().toString(),
+      title: 'MERN Stack Development',
+      organization: 'UpSkillr Academy',
+      progress: 0,
+      totalLessons: 5,
+      lessonsCompleted: 0,
+      lessons: [
+        {
+          id: 'lesson-1',
+          title: 'Introduction to MERN Stack',
+          content: 'Understanding the fundamentals of MongoDB, Express.js, React.js, and Node.js. Learn how these technologies work together to build full-stack applications.',
+          duration: '15-20 minutes',
+          completed: false,
+          quiz: {
+            question: 'What does MERN stand for?',
+            options: [
+              'MongoDB, Express.js, React.js, Node.js',
+              'MySQL, Ember.js, Ruby, Node.js',
+              'MongoDB, Electron, React.js, Next.js',
+              'MySQL, Express.js, Redux, Node.js'
+            ],
+            correctOption: 0
+          }
+        },
+        {
+          id: 'lesson-2',
+          title: 'Backend Development with Node.js and Express',
+          content: 'Learn to create RESTful APIs using Node.js and Express.js. Understand routing, middleware, and handling HTTP requests.',
+          duration: '25-30 minutes',
+          completed: false,
+          quiz: {
+            question: 'Which of these is NOT a core feature of Express.js?',
+            options: [
+              'Routing',
+              'Middleware support',
+              'Built-in database',
+              'Static file serving'
+            ],
+            correctOption: 2
+          }
+        },
+        {
+          id: 'lesson-3',
+          title: 'Database Management with MongoDB',
+          content: 'Master MongoDB database operations, schemas, and models using Mongoose. Learn about CRUD operations and data relationships.',
+          duration: '20-25 minutes',
+          completed: false,
+          quiz: {
+            question: 'What type of database is MongoDB?',
+            options: [
+              'Relational Database',
+              'NoSQL Document Database',
+              'Graph Database',
+              'Key-Value Store'
+            ],
+            correctOption: 1
+          }
+        },
+        {
+          id: 'lesson-4',
+          title: 'Frontend Development with React',
+          content: 'Build interactive user interfaces with React.js. Learn about components, state management, hooks, and routing.',
+          duration: '25-30 minutes',
+          completed: false,
+          quiz: {
+            question: 'Which hook is used for side effects in React?',
+            options: [
+              'useState',
+              'useContext',
+              'useEffect',
+              'useReducer'
+            ],
+            correctOption: 2
+          }
+        },
+        {
+          id: 'lesson-5',
+          title: 'Full Stack Integration and Deployment',
+          content: 'Connect frontend and backend, implement authentication, and learn about deployment strategies for MERN applications.',
+          duration: '30-35 minutes',
+          completed: false,
+          quiz: {
+            question: 'What is the recommended way to handle sensitive information in a MERN application?',
+            options: [
+              'Store in frontend code',
+              'Use environment variables',
+              'Save in public repository',
+              'Hardcode in database'
+            ],
+            correctOption: 1
+          }
+        }
+      ]
+    });
+
+    const generateGenericCourse = (topic) => ({
+      id: Date.now().toString(),
+      title: topic,
+      organization: 'UpSkillr Academy',
+      progress: 0,
+      totalLessons: 5,
+      lessonsCompleted: 0,
+      lessons: [
+        {
+          id: 'lesson-1',
+          title: 'Introduction to ' + topic,
+          content: 'Understanding the fundamentals and basic concepts of ' + topic,
+          duration: '15-20 minutes',
+          completed: false,
+          quiz: {
+            question: 'What is the primary purpose of ' + topic + '?',
+            options: ['Learning fundamentals', 'Advanced applications', 'Industry standards', 'Historical context'],
+            correctOption: 0
+          }
+        },
+        {
+          id: 'lesson-2',
+          title: 'Core Concepts of ' + topic,
+          content: 'Deep dive into the core principles and concepts of ' + topic,
+          duration: '20-25 minutes',
+          completed: false,
+          quiz: {
+            question: 'Which core concept is most important in ' + topic + '?',
+            options: ['Theoretical foundation', 'Practical application', 'Technical implementation', 'Strategic planning'],
+            correctOption: 1
+          }
+        },
+        {
+          id: 'lesson-3',
+          title: 'Advanced Topics in ' + topic,
+          content: 'Exploring advanced concepts and real-world applications of ' + topic,
+          duration: '25-30 minutes',
+          completed: false,
+          quiz: {
+            question: 'How do advanced topics in ' + topic + ' differ from basics?',
+            options: ['Complexity level', 'Application scope', 'Implementation methods', 'Learning curve'],
+            correctOption: 2
+          }
+        },
+        {
+          id: 'lesson-4',
+          title: 'Practical Applications of ' + topic,
+          content: 'Hands-on implementation and practical usage of ' + topic,
+          duration: '25-30 minutes',
+          completed: false,
+          quiz: {
+            question: 'What is a key practical application of ' + topic + '?',
+            options: ['Industry use', 'Academic research', 'Personal projects', 'Professional development'],
+            correctOption: 0
+          }
+        },
+        {
+          id: 'lesson-5',
+          title: 'Best Practices and Future Trends in ' + topic,
+          content: 'Understanding industry best practices and future developments in ' + topic,
+          duration: '20-25 minutes',
+          completed: false,
+          quiz: {
+            question: 'Which trend is most likely to impact the future of ' + topic + '?',
+            options: ['Technological advancement', 'Market demands', 'Regulatory changes', 'Global adoption'],
+            correctOption: 1
+          }
+        }
+      ]
+    });
+
     try {
-      const response = await fetch('/auth/logout', {
-        method: 'GET',
-        credentials: 'include',
-      });
+      // Generate course based on topic
+      const newCourse = courseTopic.toLowerCase().includes('mern') 
+        ? generateMERNCourse()
+        : generateGenericCourse(courseTopic);
 
-      if (!response.ok) {
-        throw new Error('Failed to logout');
-      }
-
-      // Redirect to login page by reloading the app
-      window.location.href = '/';
-    } catch (error) {
-      console.error('Logout error:', error);
+      setMyCourses(prev => [...prev, newCourse]);
+      setGeneratedCourse(newCourse);
+      setCourseTopic('');
+    } catch (err) {
+      console.error('Error:', err);
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -31,39 +206,248 @@ const Dashboard = () => {
     e.preventDefault();
     if (!courseTopic.trim()) return;
     setIsGenerating(true);
-    setTimeout(() => {
-      const newCourse = {
-        id: Date.now(),
-        organization: 'UpSkillr Academy',
-        title: courseTopic,
-        progress: 0,
-        lessonsCompleted: 0,
-        totalLessons: 5,
-        createdAt: new Date().toISOString(),
-        lessons: [
-          { id: 1, title: 'Lesson Overview', completed: false, content: 'This is an introduction to the course...', quiz: 'Quiz 1: Basic Concepts', duration: '4 minutes', type: 'lesson' },
-          { id: 2, title: 'Core Concepts', completed: false, content: 'Understanding the fundamental concepts...', quiz: 'Quiz 2: Core Principles', duration: '7 minutes', type: 'lesson' },
-          { id: 3, title: 'Advanced Topics', completed: false, content: 'Diving deeper into advanced concepts...', quiz: 'Quiz 3: Advanced Applications', duration: '5 minutes', type: 'lesson' },
-          { id: 4, title: 'Practical Applications', completed: false, content: 'Real-world applications and examples...', quiz: 'Quiz 4: Practical Scenarios', duration: '6 minutes', type: 'lesson' },
-          { id: 5, title: 'Final Assessment', completed: false, content: 'Comprehensive review and final project...', quiz: 'Final Quiz: Course Assessment', duration: '8 minutes', type: 'lesson' }
-        ]
-      };
-      setMyCourses(prev => [...prev, newCourse]);
-      setCourseTopic('');
-      setIsGenerating(false);
-    }, 1000);
+    
+    // Create course content based on the topic
+    const generateCourseContent = (topic) => {
+      if (topic.toLowerCase().includes('mern')) {
+        return {
+          id: Date.now().toString(),
+          title: 'MERN Stack Development',
+          organization: 'UpSkillr Academy',
+          progress: 0,
+          totalLessons: 5,
+          lessonsCompleted: 0,
+          lessons: [
+            {
+              id: 'lesson-1',
+              title: 'Introduction to MERN Stack',
+              content: 'Understanding the fundamentals of MongoDB, Express.js, React.js, and Node.js. Learn how these technologies work together to build full-stack applications.',
+              duration: '15-20 minutes',
+              completed: false,
+              quiz: {
+                question: 'What does MERN stand for?',
+                options: [
+                  'MongoDB, Express.js, React.js, Node.js',
+                  'MySQL, Ember.js, Ruby, Node.js',
+                  'MongoDB, Electron, React.js, Next.js',
+                  'MySQL, Express.js, Redux, Node.js'
+                ],
+                correctOption: 0
+              }
+            },
+            {
+              id: 'lesson-2',
+              title: 'Backend Development with Node.js and Express',
+              content: 'Learn to create RESTful APIs using Node.js and Express.js. Understand routing, middleware, and handling HTTP requests.',
+              duration: '25-30 minutes',
+              completed: false,
+              quiz: {
+                question: 'Which of these is NOT a core feature of Express.js?',
+                options: [
+                  'Routing',
+                  'Middleware support',
+                  'Built-in database',
+                  'Static file serving'
+                ],
+                correctOption: 2
+              }
+            },
+            {
+              id: 'lesson-3',
+              title: 'Database Management with MongoDB',
+              content: 'Master MongoDB database operations, schemas, and models using Mongoose. Learn about CRUD operations and data relationships.',
+              duration: '20-25 minutes',
+              completed: false,
+              quiz: {
+                question: 'What type of database is MongoDB?',
+                options: [
+                  'Relational Database',
+                  'NoSQL Document Database',
+                  'Graph Database',
+                  'Key-Value Store'
+                ],
+                correctOption: 1
+              }
+            },
+            {
+              id: 'lesson-4',
+              title: 'Frontend Development with React',
+              content: 'Build interactive user interfaces with React.js. Learn about components, state management, hooks, and routing.',
+              duration: '25-30 minutes',
+              completed: false,
+              quiz: {
+                question: 'Which hook is used for side effects in React?',
+                options: [
+                  'useState',
+                  'useContext',
+                  'useEffect',
+                  'useReducer'
+                ],
+                correctOption: 2
+              }
+            },
+            {
+              id: 'lesson-5',
+              title: 'Full Stack Integration and Deployment',
+              content: 'Connect frontend and backend, implement authentication, and learn about deployment strategies for MERN applications.',
+              duration: '30-35 minutes',
+              completed: false,
+              quiz: {
+                question: 'What is the recommended way to handle sensitive information in a MERN application?',
+                options: [
+                  'Store in frontend code',
+                  'Use environment variables',
+                  'Save in public repository',
+                  'Hardcode in database'
+                ],
+                correctOption: 1
+              }
+            }
+          ]
+        };
+      } else {
+        // Generic course structure for other topics
+        return {
+          id: Date.now().toString(),
+          title: topic,
+          organization: 'UpSkillr Academy',
+          progress: 0,
+          totalLessons: 5,
+          lessonsCompleted: 0,
+          lessons: [
+            {
+              id: 'lesson-1',
+              title: 'Introduction to ' + topic,
+              content: 'Understanding the fundamentals and basic concepts of ' + topic,
+              duration: '15-20 minutes',
+              completed: false,
+              quiz: {
+                question: 'What is the primary purpose of ' + topic + '?',
+                options: ['Learning fundamentals', 'Advanced applications', 'Industry standards', 'Historical context'],
+                correctOption: 0
+              }
+            },
+            {
+              id: 'lesson-2',
+              title: 'Core Concepts of ' + topic,
+              content: 'Deep dive into the core principles and concepts of ' + topic,
+              duration: '20-25 minutes',
+              completed: false,
+              quiz: {
+                question: 'Which core concept is most important in ' + topic + '?',
+                options: ['Theoretical foundation', 'Practical application', 'Technical implementation', 'Strategic planning'],
+                correctOption: 1
+              }
+            },
+            {
+              id: 'lesson-3',
+              title: 'Advanced Topics in ' + topic,
+              content: 'Exploring advanced concepts and real-world applications of ' + topic,
+              duration: '25-30 minutes',
+              completed: false,
+              quiz: {
+                question: 'How do advanced topics in ' + topic + ' differ from basics?',
+                options: ['Complexity level', 'Application scope', 'Implementation methods', 'Learning curve'],
+                correctOption: 2
+              }
+            },
+            {
+              id: 'lesson-4',
+              title: 'Practical Applications of ' + topic,
+              content: 'Hands-on implementation and practical usage of ' + topic,
+              duration: '25-30 minutes',
+              completed: false,
+              quiz: {
+                question: 'What is a key practical application of ' + topic + '?',
+                options: ['Industry use', 'Academic research', 'Personal projects', 'Professional development'],
+                correctOption: 0
+              }
+            },
+            {
+              id: 'lesson-5',
+              title: 'Best Practices and Future Trends in ' + topic,
+              content: 'Understanding industry best practices and future developments in ' + topic,
+              duration: '20-25 minutes',
+              completed: false,
+              quiz: {
+                question: 'Which trend is most likely to impact the future of ' + topic + '?',
+                options: ['Technological advancement', 'Market demands', 'Regulatory changes', 'Global adoption'],
+                correctOption: 1
+              }
+            }
+          ]
+        };
+      }
+    };
+
+    const newCourse = generateCourseContent(courseTopic);
+    setMyCourses(prev => [...prev, newCourse]);
+    setGeneratedCourse(newCourse);
+    setCourseTopic('');
+    setIsGenerating(false);
   };
 
   const handleLessonComplete = (courseId, lessonId) => {
-    setMyCourses(prev => prev.map(course => {
-      if (course.id === courseId) {
-        const updatedLessons = course.lessons.map(lesson => lesson.id === lessonId ? { ...lesson, completed: !lesson.completed } : lesson);
-        const completedLessons = updatedLessons.filter(lesson => lesson.completed).length;
-        const progress = (completedLessons / course.totalLessons) * 100;
-        return { ...course, lessons: updatedLessons, lessonsCompleted: completedLessons, progress };
+    setMyCourses(prev => {
+      const updatedCourses = prev.map(course => {
+        if (course.id === courseId) {
+          const updatedLessons = course.lessons.map(lesson => 
+            lesson.id === lessonId ? { ...lesson, completed: !lesson.completed } : lesson
+          );
+          const completedLessons = updatedLessons.filter(lesson => lesson.completed).length;
+          const progress = (completedLessons / course.totalLessons) * 100;
+          return { 
+            ...course, 
+            lessons: updatedLessons, 
+            lessonsCompleted: completedLessons, 
+            progress 
+          };
+        }
+        return course;
+      });
+
+      // Update selectedCourse if it matches the courseId
+      const updatedSelectedCourse = updatedCourses.find(c => c.id === courseId);
+      if (updatedSelectedCourse) {
+        setSelectedCourse(updatedSelectedCourse);
       }
-      return course;
-    }));
+
+      return updatedCourses;
+    });
+  };
+
+  const handleQuizComplete = (courseId, lessonId, score) => {
+    setMyCourses(prev => {
+      const updatedCourses = prev.map(course => {
+        if (course.id === courseId) {
+          const updatedLessons = course.lessons.map(lesson => 
+            lesson.id === lessonId ? { 
+              ...lesson, 
+              quizCompleted: true, 
+              quizScore: score 
+            } : lesson
+          );
+          const completedLessons = updatedLessons.filter(lesson => lesson.completed).length;
+          const progress = (completedLessons / course.totalLessons) * 100;
+          return { 
+            ...course, 
+            lessons: updatedLessons, 
+            lessonsCompleted: completedLessons, 
+            progress,
+            quizScore: score // Add overall quiz score to course
+          };
+        }
+        return course;
+      });
+
+      // Update selectedCourse if it matches the courseId
+      const updatedSelectedCourse = updatedCourses.find(c => c.id === courseId);
+      if (updatedSelectedCourse) {
+        setSelectedCourse(updatedSelectedCourse);
+      }
+
+      return updatedCourses;
+    });
   };
 
   const ModernCourseCard = ({ course }) => (
@@ -95,17 +479,82 @@ const Dashboard = () => {
   const CourseContent = ({ course, onBack }) => {
     const completedLessons = course.lessons.filter(lesson => lesson.completed).length;
     const progress = (completedLessons / course.totalLessons) * 100;
+    const [showQuiz, setShowQuiz] = useState(false);
+    const [quizAnswers, setQuizAnswers] = useState({});
+    const [quizResult, setQuizResult] = useState(null);
+    const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+    const [allAnswers, setAllAnswers] = useState([]);
+
+    const allLessonsCompleted = course.lessons.every(lesson => lesson.completed);
+
+    const handleStartQuiz = () => {
+      setShowQuiz(true);
+      setQuizResult(null);
+      setQuizAnswers({});
+      setCurrentQuestionIndex(0);
+      setAllAnswers([]);
+    };
+
+    const handleQuizAnswer = (questionId, answer) => {
+      setQuizAnswers(prev => ({
+        ...prev,
+        [questionId]: answer
+      }));
+    };
+
+    const handleNextQuestion = () => {
+      if (quizAnswers[`q${currentQuestionIndex}`] === undefined) return;
+      
+      const isCorrect = quizAnswers[`q${currentQuestionIndex}`] === course.lessons[currentQuestionIndex].quiz.correctOption;
+      
+      setAllAnswers(prev => [...prev, {
+        questionIndex: currentQuestionIndex,
+        selectedOption: quizAnswers[`q${currentQuestionIndex}`],
+        isCorrect
+      }]);
+      
+      setQuizAnswers({});
+      
+      if (currentQuestionIndex < course.lessons.length - 1) {
+        setCurrentQuestionIndex(prev => prev + 1);
+      } else {
+        const correctAnswers = allAnswers.filter(answer => answer.isCorrect).length + (isCorrect ? 1 : 0);
+        const score = Math.round((correctAnswers * 100) / course.lessons.length);
+        
+        setQuizResult({
+          score,
+          correctAnswers,
+          totalQuestions: course.lessons.length,
+          passed: score >= 70,
+          answers: [...allAnswers, {
+            questionIndex: currentQuestionIndex,
+            selectedOption: quizAnswers[`q${currentQuestionIndex}`],
+            isCorrect
+          }]
+        });
+      }
+    };
+
     return (
       <div className="p-8">
-        <div className="mb-6 flex items-center">
-          <button
-            onClick={onBack}
-            className="mr-4 p-2 hover:bg-gray-100 rounded-full transition-colors duration-200"
-          >
-            ←
-          </button>
-          <h2 className="text-2xl font-bold text-gray-800">{course.title}</h2>
+        <div className="mb-6 flex items-center justify-between">
+          <div className="flex items-center">
+            <button
+              onClick={onBack}
+              className="mr-4 p-2 hover:bg-gray-100 rounded-full transition-colors duration-200"
+            >
+              ←
+            </button>
+            <h2 className="text-2xl font-bold text-gray-800">{course.title}</h2>
+          </div>
+          {quizResult && (
+            <div className="bg-blue-50 text-blue-700 px-4 py-2 rounded-lg flex items-center">
+              <span className="mr-2">📝</span>
+              Quiz Score: {quizResult.score}%
+            </div>
+          )}
         </div>
+
         <div className="mb-6">
           <div className="flex justify-between items-center mb-2">
             <span className="text-gray-700 font-medium">Progress</span>
@@ -118,30 +567,172 @@ const Dashboard = () => {
             ></div>
           </div>
         </div>
+
         <div className="space-y-6">
           {course.lessons.map((lesson) => (
-            <div key={lesson.id} className="bg-white rounded-xl shadow-md p-6 border border-gray-100 flex items-center">
-              <input
-                type="checkbox"
-                checked={lesson.completed}
-                onChange={() => handleLessonComplete(course.id, lesson.id)}
-                className="h-5 w-5 text-[#2563eb] rounded border-gray-300 focus:ring-[#2563eb] cursor-pointer mr-4"
-              />
-              <div className="flex-1">
-                <div className="flex items-center mb-1">
-                  <span className="font-semibold text-gray-800 text-base mr-2">{lesson.title}</span>
-                  <span className="flex items-center text-gray-500 text-xs ml-2">
-                    <span className="mr-1">📖</span>
-                    Lesson ({lesson.duration})
-                  </span>
-                </div>
-                <p className="text-gray-600 mb-2 text-sm">{lesson.content}</p>
-                <div className="bg-gray-50 rounded-lg p-3">
-                  <p className="text-xs font-medium text-gray-700">{lesson.quiz}</p>
+            <div key={lesson.id} className="bg-white rounded-xl shadow-md p-6 border border-gray-100">
+              <div className="flex items-start">
+                <input
+                  type="checkbox"
+                  checked={lesson.completed}
+                  onChange={() => handleLessonComplete(course.id, lesson.id)}
+                  className="h-5 w-5 text-[#2563eb] rounded border-gray-300 focus:ring-[#2563eb] cursor-pointer mr-4 mt-1"
+                />
+                <div className="flex-1">
+                  <div className="flex items-center mb-1">
+                    <span className="font-semibold text-gray-800 text-base mr-2">{lesson.title}</span>
+                    <span className="flex items-center text-gray-500 text-xs ml-2">
+                      <span className="mr-1">📖</span>
+                      Lesson ({lesson.duration})
+                    </span>
+                  </div>
+                  <p className="text-gray-600 mb-4 text-sm">{lesson.content}</p>
                 </div>
               </div>
             </div>
           ))}
+
+          <div className="bg-white rounded-xl shadow-md p-6 border border-gray-100">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-semibold">Course Quiz</h3>
+              {quizResult && (
+                <div className="flex items-center text-gray-600">
+                  <span className="mr-2">Score:</span>
+                  <span className={`font-semibold ${
+                    quizResult.score >= 70 ? 'text-green-600' : 'text-orange-600'
+                  }`}>
+                    {quizResult.score}%
+                  </span>
+                </div>
+              )}
+            </div>
+            
+            {!allLessonsCompleted ? (
+              <div className="text-center py-4">
+                <p className="text-gray-600">Complete all lessons to unlock the quiz</p>
+                <p className="text-sm text-gray-500 mt-2">{completedLessons} of {course.totalLessons} lessons completed</p>
+              </div>
+            ) : showQuiz ? (
+              <div className="space-y-6">
+                {quizResult ? (
+                  <div>
+                    <div className="text-center mb-6">
+                      <div className={`text-4xl mb-4 ${quizResult.passed ? 'text-green-500' : 'text-orange-500'}`}>
+                        {quizResult.passed ? '🎉' : '📝'}
+                      </div>
+                      <h3 className="text-2xl font-bold mb-2">
+                        {quizResult.passed ? 'Congratulations!' : 'Keep Learning!'}
+                      </h3>
+                      <p className="text-lg mb-2">Final Score: <span className="font-bold">{quizResult.score}%</span></p>
+                      <p className="text-gray-600">
+                        Correct Answers: {quizResult.correctAnswers} out of {quizResult.totalQuestions}
+                      </p>
+                    </div>
+
+                    <div className="space-y-4 mb-6">
+                      {quizResult.answers.map((answer, idx) => {
+                        const lesson = course.lessons[answer.questionIndex];
+                        return (
+                          <div key={idx} className="border-b border-gray-100 last:border-0 pb-4">
+                            <div className="flex items-start">
+                              <span className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center ${
+                                answer.isCorrect ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
+                              }`}>
+                                {answer.isCorrect ? '✓' : '✗'}
+                              </span>
+                              <div className="ml-3">
+                                <p className="font-medium">Question {idx + 1}</p>
+                                <p className="text-gray-600 mt-1">{lesson.quiz.question}</p>
+                                <p className="text-sm mt-2">
+                                  <span className="font-medium">Correct answer:</span> {lesson.quiz.options[lesson.quiz.correctOption]}
+                                </p>
+                                {!answer.isCorrect && (
+                                  <p className="text-sm mt-1 text-red-600">
+                                    Your answer: {lesson.quiz.options[answer.selectedOption]}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <div className="text-center">
+                      <button
+                        onClick={() => {
+                          setShowQuiz(false);
+                          setQuizResult(null);
+                        }}
+                        className="bg-[#2563eb] hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-md"
+                      >
+                        Return to Course
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="mb-4">
+                      <p className="text-gray-600">Question {currentQuestionIndex + 1} of {course.lessons.length}</p>
+                    </div>
+                    
+                    <div className="mb-6">
+                      <p className="font-medium text-gray-800 mb-4">
+                        {course.lessons[currentQuestionIndex].quiz.question}
+                      </p>
+                      <div className="space-y-3">
+                        {course.lessons[currentQuestionIndex].quiz.options.map((option, idx) => (
+                          <div key={idx} className="flex items-center">
+                            <input
+                              type="radio"
+                              id={`q${currentQuestionIndex}-${idx}`}
+                              name={`question-${currentQuestionIndex}`}
+                              value={idx}
+                              checked={quizAnswers[`q${currentQuestionIndex}`] === idx}
+                              onChange={() => handleQuizAnswer(`q${currentQuestionIndex}`, idx)}
+                              className="h-4 w-4 text-[#2563eb]"
+                            />
+                            <label htmlFor={`q${currentQuestionIndex}-${idx}`} className="ml-2 text-gray-700">
+                              {option}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={handleNextQuestion}
+                      disabled={quizAnswers[`q${currentQuestionIndex}`] === undefined}
+                      className={`w-full py-3 px-4 rounded-md text-white font-semibold ${
+                        quizAnswers[`q${currentQuestionIndex}`] === undefined
+                          ? 'bg-gray-300 cursor-not-allowed'
+                          : 'bg-[#2563eb] hover:bg-blue-700'
+                      }`}
+                    >
+                      {currentQuestionIndex < course.lessons.length - 1 ? 'Next Question' : 'Submit Quiz'}
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center">
+                <button
+                  onClick={handleStartQuiz}
+                  className="bg-[#2563eb] hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-lg shadow-md"
+                >
+                  {quizResult ? 'Retake Quiz' : 'Start Quiz'}
+                </button>
+                <p className="text-sm text-gray-600 mt-2">
+                  Test your knowledge with {course.lessons.length} questions
+                </p>
+                {quizResult && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Your previous score: {quizResult.score}%
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -346,16 +937,7 @@ const Dashboard = () => {
             <span className="font-medium">Edit Profile</span>
           </button>
         </nav>
-        {/* Logout Button */}
-        <div className="p-4 border-t border-gray-200">
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50 transition-colors duration-200 rounded-lg"
-          >
-            <span className="mr-3 text-xl">🚪</span>
-            <span className="font-medium">Logout</span>
-          </button>
-        </div>
+       <Logout/>
       </div>
       {/* Main Content */}
       <div className="flex-1 overflow-auto bg-gray-50">
@@ -389,7 +971,7 @@ const Dashboard = () => {
                       autoFocus={false}
                     />
                     <button
-                      type="submit"
+                      type="submit" onClick={handleCourseSubmit}
                       disabled={isGenerating || !courseTopic.trim()}
                       className={`px-6 py-3 rounded-lg font-semibold text-white transition-all duration-200 shadow-md
                         ${isGenerating || !courseTopic.trim() ? 'bg-blue-300 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}
@@ -408,6 +990,42 @@ const Dashboard = () => {
               </div>
             )}
             {activeTab === 'my-courses' && <MyCoursesContent />}
+            {generatedCourse && !isGenerating && (
+              <div className="mt-6 bg-blue-50 rounded-lg p-4 border border-blue-100">
+                <div className="flex items-center mb-3">
+                  <div className="bg-[#2563eb] text-white p-2 rounded-full mr-3">
+                    <span className="text-xl">📚</span>
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-800">{generatedCourse.title}</h3>
+                </div>
+                <p className="text-gray-600 mb-4">Your new course is ready with 5 lessons and quizzes!</p>
+                
+                {/* Course Lessons Preview */}
+                <div className="bg-white rounded-lg p-3 mb-4">
+                  <h4 className="font-medium text-gray-700 mb-2">Lessons:</h4>
+                  <ul className="space-y-1">
+                    {generatedCourse.lessons.map((lesson, idx) => (
+                      <li key={idx} className="text-sm text-gray-600 flex items-center">
+                        <span className="mr-2 text-[#2563eb]">•</span>
+                        {lesson.title}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">
+                    5 lessons with interactive quizzes
+                  </span>
+                  <button 
+                    onClick={() => setSelectedCourse(generatedCourse)}
+                    className="bg-[#2563eb] hover:bg-blue-700 text-white text-sm font-medium py-2 px-4 rounded transition-colors duration-200"
+                  >
+                    Start Learning
+                  </button>
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>
