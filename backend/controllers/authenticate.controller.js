@@ -138,5 +138,17 @@ const update = async (req, res) => {
 };
 
 
+const logout = async (req, res) => {
+  try {
+    res.clearCookie("token");
+    return res.status(200).json({ message: "Logout successful" });
+  } catch (error) {
+    error.status = 500;
+    error.message = "Error logging out user";
+    return errorHandler(error, res);
+  }
+}
 
-export { signUp,login,update };
+
+
+export { signUp,login,update,logout };
