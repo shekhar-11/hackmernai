@@ -1,139 +1,102 @@
-// import { GoogleGenAI } from "@google/genai";
-
-// const ai = new GoogleGenAI({ apiKey: "" });
-
-// function isValidLearningTopic(topic) {
-//   const disallowed = [
-//     "joke", "weather", "movie", "news", "celebrity", "gossip", "sports",
-//     "love", "chat", "fun", "horoscope", "random", "politics"
-//   ];
-//   const t = topic.toLowerCase();
-//   return !disallowed.some(d => t.includes(d)) && t.length > 3;
-// }
-
-// async function generateCourseParts(topic) {
-//   if (!isValidLearningTopic(topic)) {
-//     console.error("❌ Only educational or course-related topics are allowed.");
-//     return;
-//   }
-
-//   try {
-//     const response = await ai.models.generateContent({
-//       model: "gemini-2.0-flash",
-//       contents: `
-// You are a micro-course generator.
-
-// Generate a 5-part mini course for the topic: "${topic}". Each part must be in this JSON format:
-
-// [
-//   {
-//     "title": "Lesson 1 Title",
-//     "content": "Detailed content for lesson 1..."
-//   },
-//   {
-//     "title": "Lesson 2 Title",
-//     "content": "Detailed content for lesson 2..."
-//   },
-//   {
-//     "title": "Lesson 3 Title",
-//     "content": "Detailed content for lesson 3..."
-//   },
-//   {
-//     "title": "Lesson 4 Title",
-//     "content": "Detailed content for lesson 4..."
-//   },
-//   {
-//     "title": "Lesson 5 Title",
-//     "content": "Detailed content for lesson 5..."
-//   }
-// ]
-
-// Only return JSON. Do not include explanations, greetings, or markdown.
-// `
-//     });
-
-//     // Print the raw text output from the model
-    
-//   } catch (err) {
-//     console.error("Error in generateCourseParts:", err);
-//   }
-// }
-
-// // Example usage:
-// const userInput = "machine learning";
-
-// generateCourseParts(userInput);
-
-
-
-
-
-
 import { GoogleGenAI } from "@google/genai";
 
 const ai = new GoogleGenAI({ apiKey: "AIzaSyAE-yZygJ-hs6Km6uH2oBOuLay4_MSW7Ak" });
 
-function isValidLearningTopic(topic) {
-  const disallowed = [
-    "joke", "weather", "movie", "news", "celebrity", "gossip", "sports",
-    "love", "chat", "fun", "horoscope", "random", "politics"
-  ];
-  const t = topic.toLowerCase();
-  return !disallowed.some(d => t.includes(d)) && t.length > 3;
+const bannedKeywords = [
+  "sex", "porn", "nude", "violence", "kill", "terrorism", "rape", "nsfw",
+  "drugs", "murder", "assault", "gore", "blood", "hate", "racism", "suicide"
+];
+
+// Check for inappropriate content
+function isInappropriate(text) {
+  const lower = text.toLowerCase();
+  return bannedKeywords.some(bad => lower.includes(bad));
 }
 
-async function generateCourseParts(topic) {
-  if (!isValidLearningTopic(topic)) {
-    console.error("❌ Only educational or course-related topics are allowed.");
+// Use Gemini to clean and correct topic intelligently
+async function correctTopic(rawInput) {
+ const correctionPrompt = `
+You are a helpful AI assistant for a tech education platform.
+
+Your job is to interpret and correct a user's topic input.
+
+The user is trying to learn a topic related to computer science, software development, artificial intelligence, machine learning, data science, web development, mobile development, or cloud computing.
+
+Input: "${rawInput}"
+
+If the input has typos, slang, or is unclear, guess the most likely **technical** or **educational** topic it refers to.
+
+Only return the cleaned and corrected topic name as a plain string — no explanation or extra characters.
+`;
+
+
+  try {
+    const correctionResponse = await ai.models.generateContent({
+      model: "gemini-2.0-flash",
+      contents: correctionPrompt
+    });
+
+    const corrected = correctionResponse.text.trim().replace(/^"+|"+$/g, '');
+    if (isInappropriate(corrected)) {
+      throw new Error("❌ Inappropriate topic detected.");
+    }
+
+    return corrected;
+  } catch (err) {
+    console.error("❌ Topic correction failed:", err.message);
+    throw err;
+  }
+}
+
+// Generate course and quiz
+async function generateCourseParts(userInputTopic) {
+  let correctedTopic;
+
+  try {
+    correctedTopic = await correctTopic(userInputTopic);
+  } catch {
     return;
   }
+
+  const coursePrompt = `
+You are a micro-course generator.
+
+The original user input was: "${userInputTopic}"
+The corrected topic is: "${correctedTopic}"
+
+Generate a 5-part mini course for the topic: "${correctedTopic}".
+
+Return a JSON object with the following keys:
+- "correctedTopic": the final, cleaned topic
+- "lessons": an array of 5 lessons with "title" and "content"
+- "quiz": an array of 5 questions (1 per lesson), each with:
+  - "question": string,
+  - "options": array of 4 strings,
+  - "correctOption": index of the correct answer (0-3)
+
+Only return pure JSON, no extra text or markdown.
+`;
 
   try {
     const response = await ai.models.generateContent({
       model: "gemini-2.0-flash",
-      contents: `
-You are a micro-course generator.
-
-Generate a 5-part mini course for the topic: "${topic}".
-
-The output should be a JSON object with two keys: "lessons" and "quiz".
-
-- "lessons" is an array of 5 lessons. Each lesson has "title" and "content".
-- "quiz" is an array of 5 questions, one per lesson. Each question has:
-  - "question": the question text,
-  - "options": an array of 4 answer options,
-  - "correctOption": the index (0-3) of the correct option.
-
-Return only JSON. No explanations, greetings, or markdown.
-
-Example format:
-
-{
-  "lessons": [
-    {"title": "Lesson 1 Title", "content": "Detailed content for lesson 1..."},
-    ...
-  ],
-  "quiz": [
-    {
-      "question": "Question for lesson 1?",
-      "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
-      "correctOption": 2
-    },
-    ...
-  ]
-}
-`
+      contents: coursePrompt
     });
 
-    // Print the raw text output from the model
-    console.log("Model output:\n", response.text);
+    const cleaned = response.text
+  .replace(/```json/g, '')
+  .replace(/```/g, '')
+  .trim();
+
+const result = JSON.parse(cleaned);
+
+    console.log(JSON.stringify(result, null, 2));
+    return result;
   } catch (err) {
-    console.error("Error in generateCourseParts:", err);
+    console.error("❌ Error generating course:", err.message);
   }
 }
 
-// Example usage:
-const userInput = "machine learning";
-
+// Example (simulated user input, replace with dynamic input in real app)
+const userInput = "web dev"; // messy input
 generateCourseParts(userInput);
-
