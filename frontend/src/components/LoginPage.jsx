@@ -22,15 +22,13 @@ const LoginPage = ({ onShowCreateAccount, onLogin }) => {
     setError('');
 
     try {
-      // Convert form data to query parameters
-      const params = new URLSearchParams({
-        username: formData.username,
-        password: formData.password
-      });
-
-      const response = await fetch(`/auth/login?${params}`, {
-        method: 'GET',
-        credentials: 'include'
+      const response = await fetch('/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(formData)
       });
 
       if (!response.ok) {
