@@ -10,7 +10,8 @@ const app = express();
 connectDb();
 
 import authrouter from "./routes/authenticate.route.js";
-
+import cookieParser from "cookie-parser";
+app.use(cookieParser())
 app.use("/auth",authrouter);
 
 app.listen(3000,(req,res)=>{
