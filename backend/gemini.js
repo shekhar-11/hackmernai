@@ -1,6 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: "AIzaSyAE-yZygJ-hs6Km6uH2oBOuLay4_MSW7Ak" });
+const ai = new GoogleGenAI({ apiKey:process.env.GEMINI_API_KEY });
 
 const bannedKeywords = [
   "sex", "porn", "nude", "violence", "kill", "terrorism", "rape", "nsfw",
