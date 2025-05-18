@@ -24,9 +24,10 @@ const CreateAccount = ({ onBackToLogin }) => {
     setError('');
     setSuccess('');
     try {
-      const res = await fetch('/auth/signUp', {
+      const res = await fetch('/api/auth/signUp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(formData),
       });
       const data = await res.json();

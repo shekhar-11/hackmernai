@@ -11,9 +11,11 @@ connectDb();
 import generate from "./routes/user.routes.js";
 import authrouter from "./routes/authenticate.route.js";
 import cookieParser from "cookie-parser";
+import userProgressRouter from './routes/userProgress.route.js';
 app.use(cookieParser())
 app.use("/api",authrouter);
 app.use("/api",generate);
+app.use('/api', userProgressRouter);
 app.listen(3000,(req,res)=>{
   console.log("Server is running on port 3000");  
 })

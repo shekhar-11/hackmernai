@@ -3,7 +3,7 @@ import React from 'react'
 function Logout() {
    const handleLogout = async () => {
     try {
-      const response = await fetch('/auth/logout', {
+      const response = await fetch('/api/auth/logout', {
         method: 'GET',
         credentials: 'include',
       });
@@ -11,6 +11,9 @@ function Logout() {
       if (!response.ok) {
         throw new Error('Failed to logout');
       }
+
+      // Clear user data from localStorage
+      localStorage.removeItem('user');
 
       // Redirect to login page by reloading the app
       window.location.href = '/';

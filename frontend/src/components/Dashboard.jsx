@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Logout from './Logout';
 
 const Dashboard = () => {
@@ -7,10 +7,72 @@ const Dashboard = () => {
   const [courseTopic, setCourseTopic] = useState('');
   const [myCourses, setMyCourses] = useState([]);
   const [selectedCourse, setSelectedCourse] = useState(null);
-  const [username, setUsername] = useState('John');
+  const [username, setUsername] = useState('');
   const [showProfile, setShowProfile] = useState(false);
 
   const [generatedCourse, setGeneratedCourse] = useState(null);
+
+  useEffect(() => {
+    // Get user data from localStorage when component mounts
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      const user = JSON.parse(userData);
+      setUsername(user.username);
+      fetchUserProgress(); // Fetch user's course progress
+    }
+  }, []);
+
+  // Fetch user's course progress
+  const fetchUserProgress = async () => {
+    try {
+      const response = await fetch('/api/progress', {
+        credentials: 'include'
+      });
+      const data = await response.json();
+      if (response.ok && data.courses) {
+        setMyCourses(data.courses);
+      }
+    } catch (error) {
+      console.error('Error fetching progress:', error);
+    }
+  };
+
+  // Save course progress
+  const saveCourseProgress = async (courseId, courseData) => {
+    try {
+      const response = await fetch('/api/progress/update', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          courseId,
+          courseData: {
+            ...courseData,
+            lessons: courseData.lessons.map(lesson => ({
+              id: lesson.id,
+              title: lesson.title,
+              content: lesson.content,
+              duration: lesson.duration,
+              completed: lesson.completed,
+              quiz: {
+                question: lesson.quiz.question,
+                options: lesson.quiz.options,
+                correctOption: lesson.quiz.correctOption
+              }
+            }))
+          }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save progress');
+      }
+    } catch (error) {
+      console.error('Error saving progress:', error);
+    }
+  };
 
   const handleCourseSubmit = async (e) => {
     e.preventDefault();
@@ -136,12 +198,12 @@ Security is paramount in full-stack applications, so we'll discuss best practice
     });
 
     const generateGenericCourse = (topic) => ({
-      id: Date.now().toString(),
+        id: Date.now().toString(),
       title: topic,
-      organization: 'UpSkillr Academy',
-      progress: 0,
+        organization: 'UpSkillr Academy',
+        progress: 0,
       totalLessons: 5,
-      lessonsCompleted: 0,
+        lessonsCompleted: 0,
       lessons: [
         {
           id: 'lesson-1',
@@ -231,7 +293,7 @@ The lesson also addresses professional growth in ${topic}, including career oppo
       const newCourse = courseTopic.toLowerCase().includes('mern') 
         ? generateMERNCourse()
         : generateGenericCourse(courseTopic);
-
+      
       setMyCourses(prev => [...prev, newCourse]);
       setGeneratedCourse(newCourse);
       setCourseTopic('');
@@ -558,23 +620,27 @@ The lesson also addresses professional growth in ${topic}, including career oppo
   const handleLessonComplete = (courseId, lessonId) => {
     setMyCourses(prev => {
       const updatedCourses = prev.map(course => {
-        if (course.id === courseId) {
-          const updatedLessons = course.lessons.map(lesson => 
-            lesson.id === lessonId ? { ...lesson, completed: !lesson.completed } : lesson
-          );
-          const completedLessons = updatedLessons.filter(lesson => lesson.completed).length;
-          const progress = (completedLessons / course.totalLessons) * 100;
-          return { 
+      if (course.id === courseId) {
+        const updatedLessons = course.lessons.map(lesson => 
+          lesson.id === lessonId ? { ...lesson, completed: !lesson.completed } : lesson
+        );
+        const completedLessons = updatedLessons.filter(lesson => lesson.completed).length;
+        const progress = (completedLessons / course.totalLessons) * 100;
+          const updatedCourse = { 
             ...course, 
             lessons: updatedLessons, 
             lessonsCompleted: completedLessons, 
             progress 
           };
-        }
-        return course;
+          
+          // Save progress to backend
+          saveCourseProgress(courseId, updatedCourse);
+          
+          return updatedCourse;
+      }
+      return course;
       });
 
-      // Update selectedCourse if it matches the courseId
       const updatedSelectedCourse = updatedCourses.find(c => c.id === courseId);
       if (updatedSelectedCourse) {
         setSelectedCourse(updatedSelectedCourse);
@@ -587,28 +653,20 @@ The lesson also addresses professional growth in ${topic}, including career oppo
   const handleQuizComplete = (courseId, lessonId, score) => {
     setMyCourses(prev => {
       const updatedCourses = prev.map(course => {
-        if (course.id === courseId) {
-          const updatedLessons = course.lessons.map(lesson => 
-            lesson.id === lessonId ? { 
-              ...lesson, 
-              quizCompleted: true, 
-              quizScore: score 
-            } : lesson
-          );
-          const completedLessons = updatedLessons.filter(lesson => lesson.completed).length;
-          const progress = (completedLessons / course.totalLessons) * 100;
-          return { 
-            ...course, 
-            lessons: updatedLessons, 
-            lessonsCompleted: completedLessons, 
-            progress,
-            quizScore: score // Add overall quiz score to course
+      if (course.id === courseId) {
+          const updatedCourse = { 
+            ...course,
+            quizScore: score 
           };
-        }
-        return course;
+          
+          // Save complete course data
+          saveCourseProgress(courseId, updatedCourse);
+          
+          return updatedCourse;
+      }
+      return course;
       });
 
-      // Update selectedCourse if it matches the courseId
       const updatedSelectedCourse = updatedCourses.find(c => c.id === courseId);
       if (updatedSelectedCourse) {
         setSelectedCourse(updatedSelectedCourse);
@@ -618,14 +676,50 @@ The lesson also addresses professional growth in ${topic}, including career oppo
     });
   };
 
-  const ModernCourseCard = ({ course }) => (
+  const ModernCourseCard = ({ course }) => {
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+    const handleDelete = async () => {
+      try {
+        setIsDeleting(true);
+        const response = await fetch(`/api/progress/course/${course.id}`, {
+          method: 'DELETE',
+          credentials: 'include'
+        });
+
+        if (response.ok) {
+          // Remove course from state
+          setMyCourses(prev => prev.filter(c => c.id !== course.id));
+        } else {
+          throw new Error('Failed to delete course');
+        }
+      } catch (error) {
+        console.error('Error deleting course:', error);
+      } finally {
+        setIsDeleting(false);
+        setShowDeleteConfirm(false);
+      }
+    };
+
+    return (
     <div className="flex flex-col md:flex-row items-stretch bg-white border border-gray-200 rounded-2xl shadow-sm p-6 mb-6">
       <div className="flex-1 min-w-0">
         <div className="text-sm text-gray-500 mb-1">{course.organization || 'UpSkillr Academy'}</div>
         <div className="text-xl font-bold text-gray-900 mb-1">{course.title}</div>
-        <div className="text-gray-500 text-sm mb-2">Course · {Math.round(course.progress)}% complete</div>
+          <div className="flex flex-col space-y-1">
+            <div className="text-gray-500 text-sm">Course · {Math.round(course.progress)}% complete</div>
+            {course.quizScore !== undefined && (
+              <div className="text-gray-500 text-sm flex items-center">
+                <span className="mr-2">📝</span>
+                Quiz Score: <span className={`ml-1 font-medium ${
+                  course.quizScore >= 70 ? 'text-green-600' : 'text-orange-600'
+                }`}>{course.quizScore}%</span>
+        </div>
+            )}
       </div>
-      <div className="flex flex-col justify-center items-end md:ml-8 bg-gray-50 rounded-xl px-6 py-4 min-w-[260px]">
+        </div>
+        <div className="flex flex-col justify-center items-end md:ml-8 bg-gray-50 rounded-xl px-6 py-4 min-w-[260px]">
         <div className="font-semibold text-gray-800 mb-1 flex items-center">
           <span className="mr-2">📖</span>
           {course.lessons[0]?.title || 'Lesson Overview'}
@@ -634,15 +728,53 @@ The lesson also addresses professional growth in ${topic}, including career oppo
           <span className="mr-1">📖</span>
           Lesson ({course.lessons[0]?.duration || '4 minutes'})
         </div>
+          <div className="flex space-x-2">
         <button
           onClick={() => setSelectedCourse(course)}
           className="bg-green-600 hover:bg-green-700 text-white font-semibold rounded-md px-6 py-2 transition-colors duration-200 shadow"
         >
-          Get started
+              {course.progress === 100 ? 'Review Course' : 'Get started'}
+            </button>
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="text-red-600 hover:text-red-700 hover:bg-red-50 font-medium rounded-md px-3 py-2 transition-colors duration-200"
+              disabled={isDeleting}
+            >
+              {isDeleting ? '...' : '🗑️'}
         </button>
       </div>
+        </div>
+
+        {/* Delete Confirmation Modal */}
+        {showDeleteConfirm && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-sm mx-4">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Delete Course</h3>
+              <p className="text-gray-600 mb-4">
+                Are you sure you want to delete "{course.title}"? This action cannot be undone.
+              </p>
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="px-4 py-2 text-gray-600 hover:text-gray-700 font-medium"
+                  disabled={isDeleting}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDelete}
+                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 font-medium"
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? 'Deleting...' : 'Delete'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
     </div>
   );
+  };
 
   const CourseContent = ({ course, onBack }) => {
     const completedLessons = course.lessons.filter(lesson => lesson.completed).length;
@@ -689,7 +821,7 @@ The lesson also addresses professional growth in ${topic}, including career oppo
         const correctAnswers = allAnswers.filter(answer => answer.isCorrect).length + (isCorrect ? 1 : 0);
         const score = Math.round((correctAnswers * 100) / course.lessons.length);
         
-        setQuizResult({
+        const quizResultData = {
           score,
           correctAnswers,
           totalQuestions: course.lessons.length,
@@ -699,7 +831,10 @@ The lesson also addresses professional growth in ${topic}, including career oppo
             selectedOption: quizAnswers[`q${currentQuestionIndex}`],
             isCorrect
           }]
-        });
+        };
+        
+        setQuizResult(quizResultData);
+        handleQuizComplete(course.id, null, score); // Update the course's quiz score
       }
     };
 
@@ -707,14 +842,14 @@ The lesson also addresses professional growth in ${topic}, including career oppo
       <div className="p-8">
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center">
-            <button
-              onClick={onBack}
-              className="mr-4 p-2 hover:bg-gray-100 rounded-full transition-colors duration-200"
-            >
-              ←
-            </button>
-            <h2 className="text-2xl font-bold text-gray-800">{course.title}</h2>
-          </div>
+          <button
+            onClick={onBack}
+            className="mr-4 p-2 hover:bg-gray-100 rounded-full transition-colors duration-200"
+          >
+            ←
+          </button>
+          <h2 className="text-2xl font-bold text-gray-800">{course.title}</h2>
+        </div>
           {quizResult && (
             <div className="bg-blue-50 text-blue-700 px-4 py-2 rounded-lg flex items-center">
               <span className="mr-2">📝</span>
@@ -753,7 +888,7 @@ The lesson also addresses professional growth in ${topic}, including career oppo
                       <span className="mr-1">📖</span>
                       Lesson ({lesson.duration})
                     </span>
-                  </div>
+            </div>
                   <p className="text-gray-600 mb-4 text-sm">{lesson.content}</p>
                 </div>
               </div>
@@ -782,15 +917,15 @@ The lesson also addresses professional growth in ${topic}, including career oppo
               </div>
             ) : showQuiz ? (
               <div className="space-y-6">
-                {quizResult ? (
+            {quizResult ? (
                   <div>
                     <div className="text-center mb-6">
-                      <div className={`text-4xl mb-4 ${quizResult.passed ? 'text-green-500' : 'text-orange-500'}`}>
-                        {quizResult.passed ? '🎉' : '📝'}
-                      </div>
-                      <h3 className="text-2xl font-bold mb-2">
-                        {quizResult.passed ? 'Congratulations!' : 'Keep Learning!'}
-                      </h3>
+                <div className={`text-4xl mb-4 ${quizResult.passed ? 'text-green-500' : 'text-orange-500'}`}>
+                  {quizResult.passed ? '🎉' : '📝'}
+                </div>
+                <h3 className="text-2xl font-bold mb-2">
+                  {quizResult.passed ? 'Congratulations!' : 'Keep Learning!'}
+                </h3>
                       <p className="text-lg mb-2">Final Score: <span className="font-bold">{quizResult.score}%</span></p>
                       <p className="text-gray-600">
                         Correct Answers: {quizResult.correctAnswers} out of {quizResult.totalQuestions}
@@ -827,7 +962,7 @@ The lesson also addresses professional growth in ${topic}, including career oppo
                     </div>
 
                     <div className="text-center">
-                      <button
+                <button
                         onClick={() => {
                           setShowQuiz(false);
                           setQuizResult(null);
@@ -835,7 +970,7 @@ The lesson also addresses professional growth in ${topic}, including career oppo
                         className="bg-[#2563eb] hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-md"
                       >
                         Return to Course
-                      </button>
+                </button>
                     </div>
                   </div>
                 ) : (
@@ -850,25 +985,25 @@ The lesson also addresses professional growth in ${topic}, including career oppo
                       </p>
                       <div className="space-y-3">
                         {course.lessons[currentQuestionIndex].quiz.options.map((option, idx) => (
-                          <div key={idx} className="flex items-center">
-                            <input
-                              type="radio"
+                        <div key={idx} className="flex items-center">
+                          <input
+                            type="radio"
                               id={`q${currentQuestionIndex}-${idx}`}
                               name={`question-${currentQuestionIndex}`}
-                              value={idx}
+                            value={idx}
                               checked={quizAnswers[`q${currentQuestionIndex}`] === idx}
                               onChange={() => handleQuizAnswer(`q${currentQuestionIndex}`, idx)}
                               className="h-4 w-4 text-[#2563eb]"
                             />
                             <label htmlFor={`q${currentQuestionIndex}-${idx}`} className="ml-2 text-gray-700">
-                              {option}
-                            </label>
-                          </div>
-                        ))}
-                      </div>
+                            {option}
+                          </label>
+                        </div>
+                      ))}
                     </div>
-
-                    <button
+                  </div>
+                
+                <button
                       onClick={handleNextQuestion}
                       disabled={quizAnswers[`q${currentQuestionIndex}`] === undefined}
                       className={`w-full py-3 px-4 rounded-md text-white font-semibold ${
@@ -878,18 +1013,18 @@ The lesson also addresses professional growth in ${topic}, including career oppo
                       }`}
                     >
                       {currentQuestionIndex < course.lessons.length - 1 ? 'Next Question' : 'Submit Quiz'}
-                    </button>
-                  </div>
-                )}
+                </button>
               </div>
-            ) : (
+            )}
+          </div>
+        ) : (
               <div className="text-center">
-                <button
+                            <button
                   onClick={handleStartQuiz}
                   className="bg-[#2563eb] hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-lg shadow-md"
-                >
+                            >
                   {quizResult ? 'Retake Quiz' : 'Start Quiz'}
-                </button>
+                            </button>
                 <p className="text-sm text-gray-600 mt-2">
                   Test your knowledge with {course.lessons.length} questions
                 </p>
@@ -898,19 +1033,32 @@ The lesson also addresses professional growth in ${topic}, including career oppo
                     Your previous score: {quizResult.score}%
                   </p>
                 )}
-              </div>
-            )}
-          </div>
-        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
       </div>
     );
   };
 
   const ProfilePage = () => {
-    const [form, setForm] = useState({ username, email: '', password: '' });
+    const [form, setForm] = useState({ username: '', email: '', password: '' });
     const [success, setSuccess] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+
+    // Load user data when component mounts
+    useEffect(() => {
+      const userData = localStorage.getItem('user');
+      if (userData) {
+        const user = JSON.parse(userData);
+        setForm(prevForm => ({
+          ...prevForm,
+          username: user.username,
+          email: user.email || ''
+        }));
+      }
+    }, []);
 
     const handleChange = e => {
       setForm({ ...form, [e.target.name]: e.target.value });
@@ -923,16 +1071,16 @@ The lesson also addresses professional growth in ${topic}, including career oppo
       setError('');
 
       try {
-        const response = await fetch('/auth/update', {
+        const response = await fetch('/api/auth/update', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          credentials: 'include', // Important for sending cookies
+          credentials: 'include',
           body: JSON.stringify({
             username: form.username,
             email: form.email,
-            password: form.password
+            password: form.password || undefined // Only send password if it's not empty
           })
         });
 
@@ -942,8 +1090,16 @@ The lesson also addresses professional growth in ${topic}, including career oppo
           throw new Error(data.message || 'Failed to update profile');
         }
 
-        setUsername(form.username);
+        // Update local storage with new user data
+        localStorage.setItem('user', JSON.stringify(data.user));
+        
+        // Update username in the dashboard
+        setUsername(data.user.username);
+        
         setSuccess('Profile updated successfully!');
+        
+        // Clear password field after successful update
+        setForm(prev => ({ ...prev, password: '' }));
       } catch (err) {
         setError(err.message || 'Failed to update profile. Please try again.');
       } finally {
@@ -982,14 +1138,16 @@ The lesson also addresses professional growth in ${topic}, including career oppo
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              New Password <span className="text-gray-500 text-xs">(leave empty to keep current)</span>
+            </label>
             <input
               type="password"
               name="password"
               value={form.password}
               onChange={handleChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#2563eb] focus:border-transparent"
-              required
+              placeholder="Enter new password"
               disabled={loading}
             />
           </div>
@@ -1000,7 +1158,7 @@ The lesson also addresses professional growth in ${topic}, including career oppo
               ${loading ? 'bg-blue-300 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}
             `}
           >
-            {loading ? 'Updating...' : 'Update'}
+            {loading ? 'Updating...' : 'Update Profile'}
           </button>
         </form>
         <div className="mt-6 text-center">
@@ -1105,7 +1263,7 @@ The lesson also addresses professional growth in ${topic}, including career oppo
             <span className="font-medium">Edit Profile</span>
           </button>
         </nav>
-       <Logout/>
+        <Logout/>
       </div>
       {/* Main Content */}
       <div className="flex-1 overflow-auto bg-gray-50">
@@ -1152,48 +1310,48 @@ The lesson also addresses professional growth in ${topic}, including career oppo
                     <div className="mt-4 flex items-center space-x-3 text-[#2563eb]">
                       <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#2563eb]"></div>
                       <span className="font-medium">Generating your course...</span>
+                      </div>
+                  )}
+                      </div>
                     </div>
                   )}
-                </div>
-              </div>
-            )}
             {activeTab === 'my-courses' && <MyCoursesContent />}
-            {generatedCourse && !isGenerating && (
-              <div className="mt-6 bg-blue-50 rounded-lg p-4 border border-blue-100">
-                <div className="flex items-center mb-3">
+                  {generatedCourse && !isGenerating && (
+                    <div className="mt-6 bg-blue-50 rounded-lg p-4 border border-blue-100">
+                      <div className="flex items-center mb-3">
                   <div className="bg-[#2563eb] text-white p-2 rounded-full mr-3">
-                    <span className="text-xl">📚</span>
-                  </div>
+                          <span className="text-xl">📚</span>
+                        </div>
                   <h3 className="text-lg font-semibold text-gray-800">{generatedCourse.title}</h3>
-                </div>
+                      </div>
                 <p className="text-gray-600 mb-4">Your new course is ready with 5 lessons and quizzes!</p>
-                
-                {/* Course Lessons Preview */}
-                <div className="bg-white rounded-lg p-3 mb-4">
-                  <h4 className="font-medium text-gray-700 mb-2">Lessons:</h4>
-                  <ul className="space-y-1">
+                      
+                      {/* Course Lessons Preview */}
+                      <div className="bg-white rounded-lg p-3 mb-4">
+                        <h4 className="font-medium text-gray-700 mb-2">Lessons:</h4>
+                        <ul className="space-y-1">
                     {generatedCourse.lessons.map((lesson, idx) => (
-                      <li key={idx} className="text-sm text-gray-600 flex items-center">
+                            <li key={idx} className="text-sm text-gray-600 flex items-center">
                         <span className="mr-2 text-[#2563eb]">•</span>
-                        {lesson.title}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">
+                              {lesson.title}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-600">
                     5 lessons with interactive quizzes
-                  </span>
-                  <button 
+                        </span>
+                        <button 
                     onClick={() => setSelectedCourse(generatedCourse)}
                     className="bg-[#2563eb] hover:bg-blue-700 text-white text-sm font-medium py-2 px-4 rounded transition-colors duration-200"
-                  >
-                    Start Learning
-                  </button>
-                </div>
-              </div>
-            )}
+                        >
+                          Start Learning
+                        </button>
+                      </div>
+                    </div>
+                  )}
           </>
         )}
       </div>
@@ -1201,4 +1359,4 @@ The lesson also addresses professional growth in ${topic}, including career oppo
   );
 };
 
-export default Dashboard; 
+export default Dashboard;
