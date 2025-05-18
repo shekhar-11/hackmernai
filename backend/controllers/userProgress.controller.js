@@ -1,7 +1,7 @@
 import UserProgress from '../model/userProgress.model.js';
 import { errorHandler } from '../error/error.js';
 
-// Get user's course progress
+
 export const getUserProgress = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -17,7 +17,7 @@ export const getUserProgress = async (req, res) => {
   }
 };
 
-// Delete course
+
 export const deleteCourse = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -29,7 +29,7 @@ export const deleteCourse = async (req, res) => {
       return res.status(404).json({ message: 'User progress not found' });
     }
 
-    // Remove the course from the courses array
+   
     userProgress.courses = userProgress.courses.filter(
       course => course.courseId !== courseId
     );
@@ -41,7 +41,7 @@ export const deleteCourse = async (req, res) => {
   }
 };
 
-// Update course progress
+
 export const updateCourseProgress = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -56,12 +56,12 @@ export const updateCourseProgress = async (req, res) => {
       });
     }
 
-    // Find the course index in the user's courses array
+  
     const courseIndex = userProgress.courses.findIndex(
       course => course.courseId === courseId
     );
 
-    // If course doesn't exist, add it with complete data
+   
     if (courseIndex === -1) {
       userProgress.courses.push({
         courseId,
@@ -85,7 +85,7 @@ export const updateCourseProgress = async (req, res) => {
         }))
       });
     } else {
-      // Update existing course with complete data
+    
       userProgress.courses[courseIndex] = {
         courseId,
         title: courseData.title,
