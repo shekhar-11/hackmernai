@@ -5,12 +5,7 @@ export default {
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
-    extend: {
-      colors: {
-        'upskillr-blue': '#2563eb',
-        'upskillr-light-blue': '#dbeafe',
-      },
-    },
+    extend: {},
   },
   plugins: [],
-} 
+}
